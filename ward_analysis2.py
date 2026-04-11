@@ -2,9 +2,10 @@
 Hospital Ward Analysis
 """
 
+# input 'bash setup.sh '
 import numpy as np
 import matplotlib.pyplot as plt
-
+from scipy import stats
 
 # Task 1: Ward Occupancy
 
@@ -68,40 +69,13 @@ def analyse_infection_wave(daily_count):
 # Task 3: Vaccination Effectiveness
 
 def assess_vaccination(pre_count, post_count, alpha=0.05):
-    from math import lgamma, exp, log
-
-    pre  = np.array(pre_count,  dtype=float)
-    post = np.array(post_count, dtype=float)
-    n = len(pre)
-
-    pre_mean, post_mean = pre.mean(), post.mean()
+    pre_mean  = np.mean(pre_count)
+    post_mean = np.mean(post_count)
     reduction = pre_mean - post_mean
 
-    # Welch's t-statistic and degrees of freedom
-    se = np.sqrt(pre.var(ddof=1) / n + post.var(ddof=1) / n)
-    t_stat = (pre_mean - post_mean) / se
-
-    df = (pre.var(ddof=1)/n + post.var(ddof=1)/n)**2 / (
-         (pre.var(ddof=1)/n)**2/(n-1) + (post.var(ddof=1)/n)**2/(n-1))
-
-    # one-tailed p-value via regularised incomplete beta (no scipy needed)
-    def reg_incomplete_beta(x_val, a_val, b_val, terms=200):
-        if x_val <= 0: return 0.0
-        if x_val >= 1: return 1.0
-        lbeta_ab = lgamma(a_val) + lgamma(b_val) - lgamma(a_val + b_val)
-        front = exp(a_val * log(x_val) + b_val * log(1 - x_val) - lbeta_ab)
-        total, term = 1.0, 1.0
-        for m in range(1, terms):
-            term *= x_val * (a_val + b_val + m - 1) / (a_val + m)
-            total += term
-            if abs(term) < 1e-10:
-                break
-        return front * total / a_val
-
-    x_beta = df / (df + t_stat**2)
-    p_value = 0.5 * reg_incomplete_beta(x_beta, df / 2, 0.5)
-    if t_stat < 0:
-        p_value = 1 - p_value
+    res = stats.ttest_ind(pre_count, post_count, equal_var=False, alternative='greater')
+    t_stat  = res.statistic
+    p_value = res.pvalue
 
     if p_value < alpha:
         verdict = (f"Vaccine IS effective: occupancy dropped by {reduction:.1f} "
@@ -118,7 +92,6 @@ def assess_vaccination(pre_count, post_count, alpha=0.05):
         "p_value":   round(p_value, 4),
         "verdict":   verdict,
     }
-
 
 # Demo
 
