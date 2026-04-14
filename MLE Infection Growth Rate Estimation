@@ -1,0 +1,181 @@
+# 基于最大似然估计（MLE）的 7 天感染入院数据指数增长速率计算，首先
+# 根据现有的经典传染病模型，假设如果处于换染病爆发期，入院人数应该呈现
+# 指数增长的趋势，首先我将数据通过取对数操作转化为线性模型，然后用普通最小二乘法
+# 完成MLE的参数估计，最后还计算了增长速率的95%置信区间，并根据增长速率的大小
+# 给出风险状态的结论，最后我们还提供了一个可视化函数，展示了对数转化后的入院数据和MLE线性拟合结果，可以在海报中展示。
+import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+
+# MLE Infection Growth Rate Estimation
+
+def mle_infection_growth(admissions):
+    """
+    用 MLE 估计指数感染增长速率（仅适配 7 天数据）；
+    参数要求（非负、长度 7 的列表）；
+    返回值（包含 MLE 结果、置信区间、风险状态的字典）。
+    """
+    
+    # Step 1: Validate Input (7 days only)
+   
+    if len(admissions) != 7:
+        raise ValueError("Input must be EXACTLY 7 days of admission data!")
+    admissions = np.array(admissions, dtype=np.float64) #将列表转为数组方便计算
+    if np.any(admissions < 0):
+        raise ValueError("Admission counts cannot be negative!")
+
+    
+    # Step 2: Prepare Data for Log-Likelihood Transformation
+    
+    t = np.arange(7)  # Day index: 0, 1, 2, 3, 4, 5, 6
+    # Avoid log(0) by adding a tiny epsilon (1e-6) to zero admissions
+    y_safe = np.maximum(admissions, 1e-6)
+    Y = np.log(y_safe)  # Log-transformed admissions (linear model target)
+
+    # Step 3: MLE via OLS (Gaussian Noise Assumption)
+    # np.polyfit returns [slope, intercept] for deg=1
+    # Slope = MLE growth rate r; Intercept = ln(A)，一阶多项式拟合（线性回归），返回[斜率, 截距]
+    r_mle, ln_A = np.polyfit(t, Y, deg=1, full=False)
+    A_mle = np.exp(ln_A)  # Convert back to initial amplitude
+
+    # Step 4: Calculate 95% Confidence Interval for r (Advanced)
+
+    # 1. Compute residuals (difference between observed Y and predicted Y)
+    Y_pred = ln_A + r_mle * t #回归函数，计算预测值
+    residuals = Y - Y_pred #残差，计算实际值与预测值的差异
+    n = len(t)  # Sample size = 7
+    df = n - 2  # Degrees of freedom for linear regression
+
+    # 2. Compute standard error of the slope (r_mle)
+    SSE = np.sum(residuals ** 2)  # Sum of Squared Errors
+    MSE = SSE / df  # Mean Squared Error
+    SS_t = np.sum((t - np.mean(t)) ** 2)  # Sum of Squared Deviations of t
+    SE_r = np.sqrt(MSE / SS_t)  # Standard Error of r
+    # SSE：残差平方和（总拟合误差）；
+    # MSE：均方误差（SSE/df，消除样本量影响）；
+    #SS_t：自变量t的离均差平方和；
+    # SE_r = sqrt(MSE/SS_t)：斜率（增长速率r）的标准误，越小说明估计越精准SSE：残差平方和（总拟合误差）；
+    # MSE：均方误差（SSE/df，消除样本量影响）；
+    # SS_t：自变量t的离均差平方和；
+    # SE_r = sqrt(MSE/SS_t)：斜率（增长速率r）的标准误，越小说明估计越精准
+
+
+    # 3. Compute t-critical value for 95% confidence (two-tailed)
+    t_critical = stats.t.ppf(1 - 0.025, df)
+
+    # 4. Compute confidence interval bounds
+    ci_lower = r_mle - t_critical * SE_r
+    ci_upper = r_mle + t_critical * SE_r
+
+    # Step 5: Determine Risk Status Conclusion
+
+    if r_mle > 0.05:
+        risk_status = "🔴 OUTBREAK: Rapid, sustained infection growth detected"
+    elif 0 < r_mle <= 0.05:
+        risk_status = "🟡 SLOW GROWTH: Monitor admissions closely for escalation"
+    else:
+        risk_status = "🟢 DECLINING/STABLE: Infection transmission is under control"
+
+
+    # Step 6: Return All Results in a Structured Dictionary
+    return {
+        "MLE_growth_rate_r": round(r_mle, 4),
+        "95%_confidence_interval": (round(ci_lower, 4), round(ci_upper, 4)),
+        "initial_admission_amplitude_A": round(A_mle, 2),
+        "risk_status": risk_status,
+        "log_transformed_admissions": Y,
+        "MLE_linear_fit": Y_pred,
+        "day_index": t
+    }
+
+# Optional: Poster-Ready Visualization Function
+
+def plot_mle_growth_fit(mle_results, save_path="mle_growth_fit.png"):
+    """
+    Plots log-transformed admissions + MLE linear fit (poster-ready, high DPI)
+
+    Parameters:
+        mle_results (dict): Output from mle_infection_growth()
+        save_path (str): Path to save the plot (default: mle_growth_fit.png)
+    """
+    t = mle_results["day_index"]
+    Y = mle_results["log_transformed_admissions"]
+    Y_pred = mle_results["MLE_linear_fit"]
+    r_mle = mle_results["MLE_growth_rate_r"]
+    ci_lower, ci_upper = mle_results["95%_confidence_interval"]
+
+    # Create plot
+    fig, ax = plt.subplots(figsize=(9, 5))
+
+    # Plot observed log-transformed admissions
+    ax.scatter(t, Y, color="#2E86AB", s=60, edgecolor="#1A3A4A", zorder=3, label="Observed Log(Admissions)")
+
+    # Plot MLE linear fit
+    ax.plot(t, Y_pred, color="#A23B72", linewidth=2.5, zorder=2, label=f"MLE Linear Fit (r = {r_mle:.4f})")
+
+    # Add 95% confidence interval for the fit line (optional, extra advanced)
+    # (Simplified version for poster clarity)
+    ax.fill_between(t, Y_pred - 0.2, Y_pred + 0.2, color="#A23B72", alpha=0.15, label="95% Uncertainty Band")
+
+    # Add plot labels and title
+    ax.set_xlabel("Day Index (0 to 6)", fontsize=11)
+    ax.set_ylabel("Log(Daily Admissions + ε)", fontsize=11)
+    ax.set_title("MLE Exponential Infection Growth Rate Fit (7-Day Data)", fontsize=13, fontweight="bold")
+    ax.set_xticks(t)
+    ax.set_xticklabels([f"Day {i+1}" for i in t])
+    ax.legend(loc="upper left", fontsize=10)
+    ax.grid(True, linestyle="--", alpha=0.5, zorder=1)
+
+    # Add text box with key results
+    textstr = '\n'.join((
+        f"MLE r = {r_mle:.4f}",
+        f"95% CI = ({ci_lower:.4f}, {ci_upper:.4f})",
+        mle_results["risk_status"].split(":")[0]
+    ))
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
+    ax.text(0.95, 0.95, textstr, transform=ax.transAxes, fontsize=10,
+            verticalalignment='top', horizontalalignment='right', bbox=props)
+
+    # Save and show plot
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.show()
+    print(f" MLE growth fit plot saved to: {save_path}")
+
+
+# Demo Execution (Main Block)
+
+if __name__ == "__main__":
+    print("=" * 70)
+    print("IBI1 Group Project Task5: MLE Infection Growth Rate Estimation")
+    print("=" * 70)
+
+    # Example 7-Day Admission Data (Replace with your group's data!)
+
+    # Example 1: Outbreak scenario
+    admissions_outbreak = [3, 5, 8, 12, 18, 25, 34]
+    # Example 2: Declining scenario
+    # admissions_declining = [34, 25, 18, 12, 8, 5, 3]
+    # Example 3: Slow growth scenario
+    # admissions_slow = [3, 4, 5, 6, 7, 8, 9]
+
+    # Run MLE Estimation
+
+    print("\n Running MLE estimation on 7-day admission data...")
+    mle_results = mle_infection_growth(admissions_outbreak)
+
+    # Print All Results
+
+    print("\n" + "-" * 70)
+    print("MLE Infection Growth Rate Results")
+    print("-" * 70)
+    print(f"MLE Growth Rate (r):          {mle_results['MLE_growth_rate_r']}")
+    print(f"95% Confidence Interval:      {mle_results['95%_confidence_interval']}")
+    print(f"Initial Admission Amplitude:  {mle_results['initial_admission_amplitude_A']}")
+    print(f"\n Risk Status:                {mle_results['risk_status']}")
+    print("-" * 70)
+
+    # Run Optional Visualization
+
+    print("\n Generating poster-ready MLE growth fit plot...")
+    plot_mle_growth_fit(mle_results)
