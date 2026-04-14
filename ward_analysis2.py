@@ -1,5 +1,7 @@
 """
 Hospital Ward Analysis
+
+Designed in leading of GREATEST HAO YUN QI
 """
 
 # input 'bash setup.sh '
@@ -92,8 +94,111 @@ def assess_vaccination(pre_count, post_count, alpha=0.05):
         "p_value":   round(p_value, 4),
         "verdict":   verdict,
     }
+    
+# Task 5: Transmission Rate Approximation (R-value)
+
+def estimate_r_value(admissions):
+    """
+    Estimates a daily approximate R-value (transmission rate) based on the ratio of new admissions on consecutive days.
+
+    R_approx(day i) = admissions[i] / admissions[i-1]
+
+    Interpretation:
+      R>1.0 → infection spreading
+      R=1.0 → stable
+      R<1.0 → infection declining
+
+    Parameters:
+        admissions (list): daily admission counts (length 7)
+
+    Returns:
+        dict with r_values, mean_r, trend description, and per-day labels
+    """
+    r_values=[]
+    labels=[]
+
+    for i in range(1,len(admissions)):
+        if admissions[i-1]==0:
+            r=None  # avoid division by zero
+        else:
+            r=round(admissions[i]/admissions[i-1],3)
+        r_values.append(r)
+        labels.append(f"Day {i+1}")
+
+    valid_r=[r for r in r_values if r is not None]
+    mean_r=round(np.mean(valid_r),3) if valid_r else None
+
+    # Trend: compare second half vs first half of R series
+    mid=len(valid_r)//2
+    first_half_mean=np.mean(valid_r[:mid]) if valid_r[:mid] else None
+    second_half_mean=np.mean(valid_r[mid:]) if valid_r[mid:] else None
+
+    if first_half_mean is not None and second_half_mean is not None:
+        if second_half_mean<first_half_mean:
+            trend = "R is DECLINING-transmission slowing down. ✓"
+        elif second_half_mean > first_half_mean:
+            trend = "R is INCREASING-transmission accelerating. ✗"
+        else:
+            trend = "R is STABLE-transmission rate unchanged."
+    else:
+        trend = "Insufficient data to determine trend."
+
+    return {
+        "labels":    labels,
+        "r_values":  r_values,
+        "mean_r":    mean_r,
+        "trend":     trend,
+    }
+
+
+def plot_r_value(r_result):
+    labels   =r_result["labels"]
+    r_values =r_result["r_values"]
+    mean_r   =r_result["mean_r"]
+
+    x=np.arange(len(labels))
+    colors=[]
+    for r in r_values:
+        if r is None:
+            colors.append("#AAAAAA")
+        elif r>1.0:
+            colors.append("#E74C3C")#red: spreading
+        elif r<1.0:
+            colors.append("#2ECC71")#green: declining
+        else:
+            colors.append("#F1C40F")#yellow: stable
+
+    fig, ax=plt.subplots(figsize=(9, 5))
+    bars=ax.bar(x,[r if r is not None else 0 for r in r_values],
+                  color=colors,alpha=0.85,width=0.5,zorder=2)
+
+    ax.axhline(y=1.0,color="black",linestyle="--",linewidth=1.5,
+               label="R =1 (threshold)",zorder=3)
+    if mean_r is not None:
+        ax.axhline(y=mean_r,color="#8E44AD",linestyle=":",linewidth=1.5,
+                   label=f"Mean R = {mean_r}",zorder=3)
+
+    # value labels on bars
+    for bar,r in zip(bars,r_values):
+        if r is not None:
+            ax.text(bar.get_x()+bar.get_width()/2,
+                    bar.get_height()+0.03,
+                    str(r),ha="center",va="bottom",fontsize=9)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Approximate R-value")
+    ax.set_title("Daily Transmission Rate Approximation (R-value)")
+    ax.legend(loc="upper right")
+    plt.tight_layout()
+    plt.savefig("r_value.png",dpi=150)
+    plt.show()
+    print("Chart saved → r_value.png")
+
 
 # Demo
+
+print('---郝蕴奇屁股大---')
 
 if __name__ == "__main__":
     admissions = [5, 8, 12, 10, 7, 6, 4]
@@ -130,3 +235,16 @@ if __name__ == "__main__":
     print(f"t-statistic       : {vax['t_stat']}")
     print(f"p-value (1-tail)  : {vax['p_value']}")
     print(f"Verdict → {vax['verdict']}")
+
+    # Task 5
+    print("\n" + "="*50)
+    print("TASK 5: Transmission Rate (R-value Approximation)")
+    print("="*50)
+    print('郝蕴奇'*100)
+    r_result=estimate_r_value(admissions)
+    for label, r in zip(r_result["labels"],r_result["r_values"]):
+        indicator=("↑" if r and r>1 else "↓" if r and r<1 else "→") if r else "N/A"
+        print(f"{label}: R ≈ {r if r is not None else 'N/A'}  {indicator}")
+    print(f"Mean R (7-day)  :{r_result['mean_r']}")
+    print(f"Trend           :{r_result['trend']}")
+    plot_r_value(r_result)
