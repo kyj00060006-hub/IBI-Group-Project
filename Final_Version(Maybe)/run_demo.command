@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_FILE="$SCRIPT_DIR/IBI-Group_Project.py"
+PROJECT_FILE="$SCRIPT_DIR/main.py"
 REPORT_FILE="$SCRIPT_DIR/report.html"
 VENV_DIR="$SCRIPT_DIR/.ibi_group_project_venv"
 
@@ -14,8 +14,8 @@ echo "Project folder: $SCRIPT_DIR"
 echo
 
 if [ ! -f "$PROJECT_FILE" ]; then
-    echo "Error: IBI-Group_Project.py was not found next to this launcher."
-    echo "Please keep this launcher and IBI-Group_Project.py in the same folder."
+    echo "Error: main.py was not found next to this launcher."
+    echo "Please keep this launcher, main.py, and report files in the same folder."
     echo
     read "?Press Enter to close..."
     exit 1
@@ -23,7 +23,7 @@ fi
 
 if [ ! -f "$REPORT_FILE" ]; then
     echo "Error: report.html was not found next to this launcher."
-    echo "Please keep this launcher, IBI-Group_Project.py, and report files in the same folder."
+    echo "Please keep this launcher, main.py, and report files in the same folder."
     echo
     read "?Press Enter to close..."
     exit 1
