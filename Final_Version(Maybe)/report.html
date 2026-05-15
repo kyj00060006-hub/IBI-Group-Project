@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IBI Group Project Report</title>
+    <link rel="stylesheet" href="report_style.css">
+</head>
+<body>
+    <header>
+        <h1>IBI Group Project Demo Report</h1>
+        <p>
+            Ward occupancy, infection wave, vaccination effect, and a two-stage
+            admission-based early outbreak growth assessment.
+        </p>
+    </header>
+
+    <main>
+        <section class="card note">
+            <h2>Task 5 Narrative</h2>
+            <p>
+                The additional function does not assume that every outbreak is
+                exponential. It first checks admission growth ratios as a simple
+                screening step. The exponential model is only fitted when the
+                data show sustained early growth.
+            </p>
+        </section>
+
+        <div id="result-grid" class="grid"></div>
+
+        <section class="card tester">
+            <h2>Try Your Own 7-Day Data</h2>
+            <p>
+                Enter seven comma-separated daily values. This browser-side test
+                mirrors the main demo logic for quick live questions.
+            </p>
+            <div class="input-row">
+                <div>
+                    <label for="admissions-input">Admissions</label>
+                    <input id="admissions-input" value="4,5,7,9,12,15,20">
+                </div>
+                <div>
+                    <label for="discharges-input">Discharges</label>
+                    <input id="discharges-input" value="1,1,2,3,4,5,6">
+                </div>
+            </div>
+            <button type="button" onclick="runBrowserDemo()">Run quick assessment</button>
+            <div id="tester-output" class="tester-output">Results will appear here.</div>
+        </section>
+
+        <section class="figure">
+            <h2>Task 1 Figure</h2>
+            <img id="task1-figure" src="ibi_outputs/task1_ward_occupancy.png" alt="Ward occupancy graph">
+        </section>
+
+        <section class="figure">
+            <h2>Task 5 Figure</h2>
+            <img id="task5-figure" src="ibi_outputs/task5_infection_growth.png" alt="Infection growth assessment graph">
+        </section>
+    </main>
+
+    <script src="ibi_outputs/report_data.js"></script>
+    <script src="report_app.js"></script>
+</body>
+</html>
