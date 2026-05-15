@@ -441,20 +441,20 @@ def generate_html_report(
             color: #d8e6f3;
         }}
         main {{
-            max-width: 1120px;
+            max-width: 1220px;
             margin: 0 auto;
             padding: 28px;
         }}
         .grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
-            gap: 18px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 22px;
         }}
         .card {{
             background: white;
             border: 1px solid #d9e2ec;
             border-radius: 8px;
-            padding: 18px 20px;
+            padding: 22px 24px;
             box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
         }}
         h2 {{
@@ -483,6 +483,58 @@ def generate_html_report(
         .note {{
             border-left: 5px solid #2f80ed;
             background: #edf5ff;
+            margin-bottom: 22px;
+        }}
+        .tester {{
+            margin-top: 24px;
+        }}
+        .input-row {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }}
+        label {{
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }}
+        input {{
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #bcccdc;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 15px;
+        }}
+        button {{
+            border: 0;
+            border-radius: 6px;
+            padding: 11px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            color: white;
+            background: #16324f;
+            cursor: pointer;
+        }}
+        button:hover {{
+            background: #24496f;
+        }}
+        .tester-output {{
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 6px;
+            background: #f8fafc;
+            border: 1px solid #d9e2ec;
+            white-space: pre-wrap;
+            font-family: Menlo, Consolas, monospace;
+            font-size: 14px;
+        }}
+        @media (max-width: 760px) {{
+            .grid,
+            .input-row {{
+                grid-template-columns: 1fr;
+            }}
         }}
     </style>
 </head>
@@ -512,6 +564,26 @@ def generate_html_report(
             {html_result_block("Task 5: Growth Assessment", task5_result)}
         </div>
 
+        <section class="card tester">
+            <h2>Try Your Own 7-Day Data</h2>
+            <p>
+                Enter seven comma-separated daily values. This browser-side test
+                mirrors the main demo logic for quick live questions.
+            </p>
+            <div class="input-row">
+                <div>
+                    <label for="admissions-input">Admissions</label>
+                    <input id="admissions-input" value="4,5,7,9,12,15,20">
+                </div>
+                <div>
+                    <label for="discharges-input">Discharges</label>
+                    <input id="discharges-input" value="1,1,2,3,4,5,6">
+                </div>
+            </div>
+            <button type="button" onclick="runBrowserDemo()">Run quick assessment</button>
+            <div id="tester-output" class="tester-output">Results will appear here.</div>
+        </section>
+
         <section class="figure">
             <h2>Task 1 Figure</h2>
             <img src="task1_ward_occupancy.png" alt="Ward occupancy graph">
@@ -522,6 +594,110 @@ def generate_html_report(
             <img src="task5_infection_growth.png" alt="Infection growth assessment graph">
         </section>
     </main>
+    <script>
+        function parseWeekData(id, label) {{
+            const values = document.getElementById(id).value
+                .split(",")
+                .map(item => Number(item.trim()));
+            if (values.length !== 7 || values.some(value => !Number.isInteger(value) || value < 0)) {{
+                throw new Error(label + " must contain exactly seven non-negative integers.");
+            }}
+            return values;
+        }}
+
+        function mean(values) {{
+            return values.reduce((total, value) => total + value, 0) / values.length;
+        }}
+
+        function linearRegression(xValues, yValues) {{
+            const xMean = mean(xValues);
+            const yMean = mean(yValues);
+            let sumXX = 0;
+            let sumXY = 0;
+            let sumYY = 0;
+            for (let i = 0; i < xValues.length; i++) {{
+                const dx = xValues[i] - xMean;
+                const dy = yValues[i] - yMean;
+                sumXX += dx * dx;
+                sumXY += dx * dy;
+                sumYY += dy * dy;
+            }}
+            const slope = sumXY / sumXX;
+            const intercept = yMean - slope * xMean;
+            const fitted = xValues.map(x => intercept + slope * x);
+            const residuals = yValues.map((y, i) => y - fitted[i]);
+            const sse = residuals.reduce((total, value) => total + value * value, 0);
+            const mse = sse / (xValues.length - 2);
+            const stderr = Math.sqrt(mse / sumXX);
+            const rSquared = sumYY === 0 ? 1 : 1 - sse / sumYY;
+            return {{ slope, intercept, stderr, rSquared }};
+        }}
+
+        function runBrowserDemo() {{
+            const output = document.getElementById("tester-output");
+            try {{
+                const admissions = parseWeekData("admissions-input", "Admissions");
+                const discharges = parseWeekData("discharges-input", "Discharges");
+
+                let current = 0;
+                const occupancy = admissions.map((admission, i) => {{
+                    current += admission - discharges[i];
+                    if (current < 0) {{
+                        throw new Error("Discharges cannot exceed the number of patients on the ward.");
+                    }}
+                    return current;
+                }});
+
+                const netChanges = admissions.map((admission, i) => admission - discharges[i]);
+                const largestNetChange = Math.max(...netChanges);
+                const largestDay = netChanges.indexOf(largestNetChange) + 1;
+                const peakPassed = largestNetChange <= 0 || largestDay < 7;
+
+                const ratios = admissions.slice(1).map((value, i) => (
+                    admissions[i] === 0 ? NaN : value / admissions[i]
+                ));
+                const validRatios = ratios.filter(value => !Number.isNaN(value));
+                const meanRatio = validRatios.length ? mean(validRatios) : NaN;
+                const increasingDays = validRatios.filter(value => value > 1).length;
+                const shouldModel = admissions.every(value => value > 0)
+                    && validRatios.length >= 5
+                    && meanRatio > 1.05
+                    && increasingDays >= 4;
+
+                let modelText = "Exponential model: not fitted because sustained early growth criteria were not met.";
+                if (shouldModel) {{
+                    const xValues = admissions.map((_, i) => i);
+                    const logAdmissions = admissions.map(value => Math.log(value));
+                    const model = linearRegression(xValues, logAdmissions);
+                    const growthRate = model.slope;
+                    const doublingTime = growthRate > 0 ? Math.log(2) / growthRate : null;
+                    const tCritical = 2.571;
+                    const ciLow = growthRate - tCritical * model.stderr;
+                    const ciHigh = growthRate + tCritical * model.stderr;
+                    modelText = [
+                        "Exponential model: fitted as early-growth follow-up",
+                        "growth_rate_per_day = " + growthRate.toFixed(4),
+                        "approximate_95_ci = (" + ciLow.toFixed(4) + ", " + ciHigh.toFixed(4) + ")",
+                        "doubling_time_days = " + (doublingTime === null ? "None" : doublingTime.toFixed(2)),
+                        "r_squared_log_scale = " + model.rSquared.toFixed(3)
+                    ].join("\\n");
+                }}
+
+                output.textContent = [
+                    "Daily occupancy: " + occupancy.join(", "),
+                    "Daily net changes: " + netChanges.join(", "),
+                    "Largest net change: " + largestNetChange + " on Day " + largestDay,
+                    "Peak passed: " + (peakPassed ? "Yes" : "No"),
+                    "Admission growth ratios: " + ratios.map(value => Number.isNaN(value) ? "NaN" : value.toFixed(3)).join(", "),
+                    "Mean admission growth ratio: " + (Number.isNaN(meanRatio) ? "None" : meanRatio.toFixed(3)),
+                    "Increasing days: " + increasingDays,
+                    modelText
+                ].join("\\n");
+            }} catch (error) {{
+                output.textContent = "Input error: " + error.message;
+            }}
+        }}
+    </script>
 </body>
 </html>
 """
