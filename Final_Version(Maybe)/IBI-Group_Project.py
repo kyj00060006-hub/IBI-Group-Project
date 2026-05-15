@@ -15,6 +15,7 @@ Requirements:
 from __future__ import annotations
 
 import os
+from html import escape
 from pathlib import Path
 
 
@@ -370,7 +371,165 @@ def plot_infection_growth(admissions, output_path):
     return clean_assessment
 
 
-# 13. Print demo results clearly
+# 13. Generate an HTML report for presentation
+def format_html_value(value):
+    """Convert nested result values into compact HTML."""
+    if isinstance(value, dict):
+        items = "\n".join(
+            f"<li><strong>{escape(str(key))}:</strong> {format_html_value(item)}</li>"
+            for key, item in value.items()
+        )
+        return f"<ul>{items}</ul>"
+    if isinstance(value, list) or isinstance(value, tuple):
+        return escape(", ".join(str(item) for item in value))
+    return escape(str(value))
+
+
+def html_result_block(title, result):
+    """Create one result card for the HTML report."""
+    if isinstance(result, dict):
+        body = "\n".join(
+            f"<li><strong>{escape(str(key))}:</strong> {format_html_value(value)}</li>"
+            for key, value in result.items()
+        )
+        body = f"<ul>{body}</ul>"
+    else:
+        body = f"<p>{format_html_value(result)}</p>"
+
+    return f"""
+        <section class="card">
+            <h2>{escape(title)}</h2>
+            {body}
+        </section>
+    """
+
+
+def generate_html_report(
+    output_path,
+    task1_result,
+    task2_result,
+    task3_result,
+    task5_result,
+):
+    """Save a polished, offline HTML report for the demo."""
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IBI Group Project Report</title>
+    <style>
+        body {{
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1f2933;
+            background: #f5f7fa;
+            line-height: 1.5;
+        }}
+        header {{
+            background: #16324f;
+            color: white;
+            padding: 28px 40px;
+        }}
+        header h1 {{
+            margin: 0 0 8px 0;
+            font-size: 30px;
+        }}
+        header p {{
+            margin: 0;
+            max-width: 920px;
+            color: #d8e6f3;
+        }}
+        main {{
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 28px;
+        }}
+        .grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 18px;
+        }}
+        .card {{
+            background: white;
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            padding: 18px 20px;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        }}
+        h2 {{
+            margin: 0 0 12px 0;
+            font-size: 19px;
+            color: #16324f;
+        }}
+        ul {{
+            margin: 0;
+            padding-left: 20px;
+        }}
+        li {{
+            margin: 7px 0;
+        }}
+        .figure {{
+            margin: 24px 0;
+        }}
+        .figure img {{
+            width: 100%;
+            max-width: 980px;
+            display: block;
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            background: white;
+        }}
+        .note {{
+            border-left: 5px solid #2f80ed;
+            background: #edf5ff;
+        }}
+    </style>
+</head>
+<body>
+    <header>
+        <h1>IBI Group Project Demo Report</h1>
+        <p>
+            Ward occupancy, infection wave, vaccination effect, and a two-stage
+            admission-based early outbreak growth assessment.
+        </p>
+    </header>
+    <main>
+        <section class="card note">
+            <h2>Task 5 Narrative</h2>
+            <p>
+                The additional function does not assume that every outbreak is
+                exponential. It first checks admission growth ratios as a simple
+                screening step. The exponential model is only fitted when the
+                data show sustained early growth.
+            </p>
+        </section>
+
+        <div class="grid">
+            {html_result_block("Task 1: Ward Occupancy", task1_result)}
+            {html_result_block("Task 2: Infection Wave", task2_result)}
+            {html_result_block("Task 3: Vaccination Effectiveness", task3_result)}
+            {html_result_block("Task 5: Growth Assessment", task5_result)}
+        </div>
+
+        <section class="figure">
+            <h2>Task 1 Figure</h2>
+            <img src="task1_ward_occupancy.png" alt="Ward occupancy graph">
+        </section>
+
+        <section class="figure">
+            <h2>Task 5 Figure</h2>
+            <img src="task5_infection_growth.png" alt="Infection growth assessment graph">
+        </section>
+    </main>
+</body>
+</html>
+"""
+    output_path.write_text(html, encoding="utf-8")
+    return output_path
+
+
+# 14. Print demo results clearly
 def print_result(title, result):
     print("\n" + "=" * 72)
     print(title)
@@ -382,7 +541,7 @@ def print_result(title, result):
         print(result)
 
 
-# 14. Run all tasks with example data
+# 15. Run all tasks with example data
 def run_demo():
     """Run a complete example that a marker can execute without editing code."""
     output_dir = OUTPUT_DIR
@@ -396,9 +555,11 @@ def run_demo():
 
     task1_output = output_dir / "task1_ward_occupancy.png"
     task5_output = output_dir / "task5_infection_growth.png"
+    report_output = output_dir / "report.html"
 
     occupancy = plot_ward_occupancy(baseline_admissions, baseline_discharges, task1_output)
-    print_result("Task 1: Ward occupancy", occupancy.tolist())
+    task1_result = {"daily_occupancy": occupancy.tolist()}
+    print_result("Task 1: Ward occupancy", task1_result)
     print(f"Task 1 graph saved to: {task1_output}")
 
     wave_result = analyse_infection_wave(baseline_admissions, baseline_discharges)
@@ -416,7 +577,16 @@ def run_demo():
     print_result("Task 5: Additional infection-growth assessment", growth_result)
     print(f"Task 5 graph saved to: {task5_output}")
 
+    report_path = generate_html_report(
+        report_output,
+        task1_result,
+        wave_result,
+        vaccine_result,
+        growth_result,
+    )
+    print(f"HTML report saved to: {report_path}")
 
-# 15. Start the demo when this file is run directly
+
+# Start the demo when this file is run directly
 if __name__ == "__main__":
     run_demo()

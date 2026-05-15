@@ -56,5 +56,12 @@ echo "Running project..."
 python "$PROJECT_FILE"
 
 echo
-echo "Finished. Output figures are saved in the ibi_outputs folder."
+REPORT_FILE="$SCRIPT_DIR/ibi_outputs/report.html"
+if [ -f "$REPORT_FILE" ]; then
+    echo "Opening HTML report..."
+    open "$REPORT_FILE"
+fi
+
+echo
+echo "Finished. Output figures and report are saved in the ibi_outputs folder."
 read "?Press Enter to close..."
