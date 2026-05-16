@@ -28,6 +28,26 @@
 
         <div id="result-grid" class="grid"></div>
 
+        <section class="figure">
+            <h2>Task 1 Figure</h2>
+            <img id="task1-figure" src="ibi_outputs/task1_ward_occupancy.png" alt="Ward occupancy graph">
+        </section>
+
+        <section class="figure">
+            <h2>Task 2 Figure</h2>
+            <img id="task2-figure" src="ibi_outputs/task2_infection_wave.png" alt="Infection wave net change graph">
+        </section>
+
+        <section class="figure">
+            <h2>Task 3 Figure</h2>
+            <img id="task3-figure" src="ibi_outputs/task3_vaccination_effectiveness.png" alt="Vaccination effectiveness occupancy graph">
+        </section>
+
+        <section class="figure">
+            <h2>Task 5 Figure</h2>
+            <img id="task5-figure" src="ibi_outputs/task5_infection_growth.png" alt="Infection growth assessment graph">
+        </section>
+
         <section class="card tester">
             <h2>Try Your Own 7-Day Data</h2>
             <p>
@@ -44,23 +64,11 @@
                     <input id="discharges-input" value="1,1,2,3,4,5,6">
                 </div>
             </div>
-            <button type="button" onclick="runBrowserDemo()">Run quick assessment</button>
+            <div class="button-row">
+                <button type="button" onclick="runBrowserDemo()">Run quick assessment</button>
+                <button class="secondary-button" type="button" onclick="fillRandomDemoData()">Generate random data</button>
+            </div>
             <div id="tester-output" class="tester-output">Results will appear here.</div>
-        </section>
-
-        <section class="figure">
-            <h2>Task 1 Figure</h2>
-            <img id="task1-figure" src="ibi_outputs/task1_ward_occupancy.png" alt="Ward occupancy graph">
-        </section>
-
-        <section class="figure">
-            <h2>Task 2 Figure</h2>
-            <img id="task2-figure" src="ibi_outputs/task2_infection_wave.png" alt="Infection wave net change graph">
-        </section>
-
-        <section class="figure">
-            <h2>Task 5 Figure</h2>
-            <img id="task5-figure" src="ibi_outputs/task5_infection_growth.png" alt="Infection growth assessment graph">
         </section>
     </main>
 

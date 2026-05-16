@@ -3,14 +3,25 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_FILE="$SCRIPT_DIR/main.py"
-REPORT_FILE="$SCRIPT_DIR/report.html"
-VENV_DIR="$SCRIPT_DIR/.ibi_group_project_venv"
+DEFAULT_PROJECT_DIR="/Users/kyj/Desktop/Final_Code"
 
-cd "$SCRIPT_DIR"
+if [ -f "$SCRIPT_DIR/main.py" ]; then
+    PROJECT_DIR="$SCRIPT_DIR"
+elif [ -f "$DEFAULT_PROJECT_DIR/main.py" ]; then
+    PROJECT_DIR="$DEFAULT_PROJECT_DIR"
+else
+    PROJECT_DIR="$SCRIPT_DIR"
+fi
+
+PROJECT_FILE="$PROJECT_DIR/main.py"
+REPORT_FILE="$PROJECT_DIR/report.html"
+VENV_DIR="$PROJECT_DIR/.ibi_group_project_venv"
+
+cd "$PROJECT_DIR"
 
 echo "IBI Group Project launcher"
-echo "Project folder: $SCRIPT_DIR"
+echo "Launcher folder: $SCRIPT_DIR"
+echo "Project folder: $PROJECT_DIR"
 echo
 
 if [ ! -f "$PROJECT_FILE" ]; then

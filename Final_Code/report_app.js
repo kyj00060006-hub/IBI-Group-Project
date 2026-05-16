@@ -40,7 +40,7 @@ function renderReport() {
     if (!data) {
         document.getElementById("result-grid").innerHTML = renderCard(
             "Report Data Missing",
-            { message: "Run IBI-Group_Project.py first to generate ibi_outputs/report_data.js." }
+            { message: "Run main.py first to generate ibi_outputs/report_data.js." }
         );
         return;
     }
@@ -55,6 +55,7 @@ function renderReport() {
     if (data.figures) {
         document.getElementById("task1-figure").src = data.figures.task1;
         document.getElementById("task2-figure").src = data.figures.task2;
+        document.getElementById("task3-figure").src = data.figures.task3;
         document.getElementById("task5-figure").src = data.figures.task5;
     }
 }
@@ -95,6 +96,30 @@ function linearRegression(xValues, yValues) {
     const stderr = Math.sqrt(mse / sumXX);
     const rSquared = sumYY === 0 ? 1 : 1 - sse / sumYY;
     return { slope, intercept, stderr, rSquared };
+}
+
+function randomInteger(minimum, maximum) {
+    return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+}
+
+function fillRandomDemoData() {
+    const admissions = [];
+    const discharges = [];
+    let currentOccupancy = 0;
+
+    for (let day = 0; day < 7; day++) {
+        const admission = randomInteger(2 + day, 12 + day * 2);
+        currentOccupancy += admission;
+        const dischargeLimit = Math.min(currentOccupancy, Math.max(1, Math.floor(admission * 0.75)));
+        const discharge = randomInteger(0, dischargeLimit);
+        currentOccupancy -= discharge;
+        admissions.push(admission);
+        discharges.push(discharge);
+    }
+
+    document.getElementById("admissions-input").value = admissions.join(",");
+    document.getElementById("discharges-input").value = discharges.join(",");
+    runBrowserDemo();
 }
 
 function runBrowserDemo() {

@@ -118,6 +118,21 @@ button:hover {
     background: #24496f;
 }
 
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.secondary-button {
+    color: #16324f;
+    background: #d9e9f8;
+}
+
+.secondary-button:hover {
+    background: #c5dff4;
+}
+
 .tester-output {
     margin-top: 16px;
     padding: 14px 16px;
