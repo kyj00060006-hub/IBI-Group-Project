@@ -133,7 +133,47 @@ def analyse_infection_wave(admissions, discharges):
     }
 
 
-# 8. Task 3: assess vaccination effectiveness
+# 8. Task 2: plot infection wave
+def plot_infection_wave(admissions, discharges, output_path):
+    """Create a figure showing daily net changes and the maximum increase day."""
+    wave_result = analyse_infection_wave(admissions, discharges)
+    net_changes = np.asarray(wave_result["daily_net_changes"])
+    largest_net_change = wave_result["largest_net_change"]
+    peak_passed_text = "Peak increase appears passed" if wave_result["peak_passed"] else "Peak not clearly passed"
+
+    colors = []
+    for value in net_changes:
+        if value == largest_net_change and largest_net_change > 0:
+            colors.append("#D55E00")
+        elif value > 0:
+            colors.append("#56B4E9")
+        else:
+            colors.append("#999999")
+
+    plt.figure(figsize=(8.5, 5))
+    plt.bar(DAYS, net_changes, color=colors, alpha=0.85)
+    plt.axhline(0, color="black", linewidth=1)
+    plt.title("Task 2: Daily Net Change in Ward Patients", weight="bold")
+    plt.xlabel("Day")
+    plt.ylabel("Admissions minus discharges")
+    plt.xticks(DAYS, DAY_LABELS)
+    plt.grid(axis="y", alpha=0.3)
+    plt.text(
+        0.02,
+        0.95,
+        peak_passed_text,
+        transform=plt.gca().transAxes,
+        va="top",
+        bbox={"boxstyle": "round,pad=0.35", "facecolor": "white", "edgecolor": "#d9e2ec"},
+    )
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=180)
+    plt.close()
+
+    return wave_result
+
+
+# 9. Task 3: assess vaccination effectiveness
 def assess_vaccination_effectiveness(
     baseline_admissions,
     baseline_discharges,
@@ -182,7 +222,7 @@ def assess_vaccination_effectiveness(
     }
 
 
-# 9. Task 5 level 1: calculate admission growth ratios
+# 10. Task 5 level 1: calculate admission growth ratios
 def calculate_admission_growth_ratios(admissions):
     """
     Task 5, level 1: calculate an admission-based growth proxy.
@@ -200,7 +240,7 @@ def calculate_admission_growth_ratios(admissions):
     return np.asarray(ratios, dtype=float)
 
 
-# 10. Task 5 level 2: fit exponential growth model
+# 11. Task 5 level 2: fit exponential growth model
 def fit_exponential_growth(admissions):
     """
     Task 5, level 2: fit early sustained growth to y = A * exp(r * day).
@@ -249,7 +289,7 @@ def fit_exponential_growth(admissions):
     }
 
 
-# 11. Task 5: combine proxy and model
+# 12. Task 5: combine proxy and model
 def assess_infection_growth(admissions, min_mean_ratio=1.05, min_increasing_days=4):
     """
     Task 5: combine a simple growth proxy with a conditional exponential model.
@@ -327,7 +367,7 @@ def assess_infection_growth(admissions, min_mean_ratio=1.05, min_increasing_days
     }
 
 
-# 12. Task 5: plot growth assessment
+# 13. Task 5: plot growth assessment
 def plot_infection_growth(admissions, output_path):
     """Plot the Task 5 admission data, growth ratios, and fitted model if used."""
     admissions = validate_week_data(admissions, "Admissions")
@@ -374,7 +414,7 @@ def plot_infection_growth(admissions, output_path):
     return clean_assessment
 
 
-# 13. Export report data for presentation
+# 14. Export report data for presentation
 def export_report_data(output_path, task1_result, task2_result, task3_result, task5_result):
     """Write demo results to a small JavaScript data file for the report page."""
     report_data = {
@@ -384,6 +424,7 @@ def export_report_data(output_path, task1_result, task2_result, task3_result, ta
         "task5": task5_result,
         "figures": {
             "task1": "ibi_outputs/task1_ward_occupancy.png",
+            "task2": "ibi_outputs/task2_infection_wave.png",
             "task5": "ibi_outputs/task5_infection_growth.png",
         },
     }
@@ -394,7 +435,7 @@ def export_report_data(output_path, task1_result, task2_result, task3_result, ta
     return output_path
 
 
-# 14. Print demo results clearly
+# 15. Print demo results clearly
 def print_result(title, result):
     print("\n" + "=" * 72)
     print(title)
@@ -406,7 +447,7 @@ def print_result(title, result):
         print(result)
 
 
-# 15. Run all tasks with example data
+# 16. Run all tasks with example data
 def run_demo():
     """Run a complete example that a marker can execute without editing code."""
     output_dir = OUTPUT_DIR
@@ -419,6 +460,7 @@ def run_demo():
     task5_admissions = [4, 5, 7, 9, 12, 15, 20]
 
     task1_output = output_dir / "task1_ward_occupancy.png"
+    task2_output = output_dir / "task2_infection_wave.png"
     task5_output = output_dir / "task5_infection_growth.png"
     report_data_output = output_dir / "report_data.js"
 
@@ -427,8 +469,9 @@ def run_demo():
     print_result("Task 1: Ward occupancy", task1_result)
     print(f"Task 1 graph saved to: {task1_output}")
 
-    wave_result = analyse_infection_wave(baseline_admissions, baseline_discharges)
+    wave_result = plot_infection_wave(baseline_admissions, baseline_discharges, task2_output)
     print_result("Task 2: Infection wave", wave_result)
+    print(f"Task 2 graph saved to: {task2_output}")
 
     vaccine_result = assess_vaccination_effectiveness(
         baseline_admissions,

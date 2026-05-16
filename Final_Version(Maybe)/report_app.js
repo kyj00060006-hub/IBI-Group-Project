@@ -54,6 +54,7 @@ function renderReport() {
 
     if (data.figures) {
         document.getElementById("task1-figure").src = data.figures.task1;
+        document.getElementById("task2-figure").src = data.figures.task2;
         document.getElementById("task5-figure").src = data.figures.task5;
     }
 }
