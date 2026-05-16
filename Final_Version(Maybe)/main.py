@@ -4,7 +4,7 @@ IBI Group Project: ward occupancy, infection wave, vaccination effect,
 and an additional infection-growth assessment.
 
 Run this file directly:
-    python IBI-Group_Project.py
+    python main.py
 
 Requirements:
     numpy
@@ -107,24 +107,27 @@ def analyse_infection_wave(admissions, discharges):
     calculate_ward_occupancy(admissions, discharges)
 
     net_changes = admissions - discharges
-    max_index = int(np.argmax(net_changes))
-    largest_net_change = int(net_changes[max_index])
+    largest_net_change = int(np.max(net_changes))
+    max_indices = np.where(net_changes == largest_net_change)[0]
+    days_of_largest_net_change = [f"Day {int(index) + 1}" for index in max_indices]
+    latest_max_index = int(max_indices[-1])
     greatest_positive_increase = max(largest_net_change, 0)
-    peak_passed = max_index < 6
+    peak_passed = latest_max_index < 6
 
     if largest_net_change <= 0:
-        message = "No positive daily increase was observed."
+        message = "No positive daily increase was observed, so no active upward wave was detected."
         peak_passed = True
     elif peak_passed:
-        message = "The greatest increase occurred before Day 7, so the peak increase appears to have passed."
+        message = "The latest day with the greatest increase occurred before Day 7, so the peak increase appears to have passed."
     else:
-        message = "The greatest increase occurred on Day 7, so the peak has not clearly passed."
+        message = "The greatest increase was still reached on Day 7, so the peak has not clearly passed."
 
     return {
         "daily_net_changes": net_changes.tolist(),
         "largest_net_change": largest_net_change,
         "greatest_positive_increase": greatest_positive_increase,
-        "day_of_largest_net_change": f"Day {max_index + 1}",
+        "days_of_largest_net_change": days_of_largest_net_change,
+        "latest_day_of_largest_net_change": f"Day {latest_max_index + 1}",
         "peak_passed": peak_passed,
         "interpretation": message,
     }

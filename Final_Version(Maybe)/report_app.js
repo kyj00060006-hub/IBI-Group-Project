@@ -113,8 +113,11 @@ function runBrowserDemo() {
 
         const netChanges = admissions.map((admission, i) => admission - discharges[i]);
         const largestNetChange = Math.max(...netChanges);
-        const largestDay = netChanges.indexOf(largestNetChange) + 1;
-        const peakPassed = largestNetChange <= 0 || largestDay < 7;
+        const largestDays = netChanges
+            .map((value, i) => value === largestNetChange ? i + 1 : null)
+            .filter(day => day !== null);
+        const latestLargestDay = largestDays[largestDays.length - 1];
+        const peakPassed = largestNetChange <= 0 || latestLargestDay < 7;
 
         const ratios = admissions.slice(1).map((value, i) => (
             admissions[i] === 0 ? NaN : value / admissions[i]
@@ -149,7 +152,8 @@ function runBrowserDemo() {
         output.textContent = [
             "Daily occupancy: " + occupancy.join(", "),
             "Daily net changes: " + netChanges.join(", "),
-            "Largest net change: " + largestNetChange + " on Day " + largestDay,
+            "Largest net change: " + largestNetChange + " on Day(s) " + largestDays.join(", "),
+            "Latest largest net change day: Day " + latestLargestDay,
             "Peak passed: " + (peakPassed ? "Yes" : "No"),
             "Admission growth ratios: " + ratios.map(value => Number.isNaN(value) ? "NaN" : value.toFixed(3)).join(", "),
             "Mean admission growth ratio: " + (Number.isNaN(meanRatio) ? "None" : meanRatio.toFixed(3)),
